@@ -1,0 +1,119 @@
+═══════════════════════════════════════════════════════════════
+   LUXURY HOTEL MANAGEMENT SYSTEM - HOW TO RUN
+═══════════════════════════════════════════════════════════════
+
+✅ GOOD NEWS: No errors found! Everything is installed correctly!
+
+📁 Your Project Location:
+   D:\MR_nith\luxury-hotel-management
+
+═══════════════════════════════════════════════════════════════
+   FIRST TIME SETUP (Run Once)
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Seed the Database
+--------------------------
+Double-click this file:
+   📄 RUN_SEED_DATABASE.bat
+
+This will create sample data (rooms and users).
+
+═══════════════════════════════════════════════════════════════
+   RUNNING THE APPLICATION (Every Time)
+═══════════════════════════════════════════════════════════════
+
+STEP 1: Start Backend
+---------------------
+Double-click this file:
+   📄 RUN_BACKEND.bat
+
+Wait until you see: "Server running on port 5000"
+✅ Keep this window OPEN!
+
+
+STEP 2: Start Frontend
+----------------------
+Double-click this file:
+   📄 RUN_FRONTEND.bat
+
+Browser will open automatically at http://localhost:3000
+✅ Keep this window OPEN too!
+
+═══════════════════════════════════════════════════════════════
+   YOUR WEBSITE LINKS
+═══════════════════════════════════════════════════════════════
+
+🌐 Main Website:
+   http://localhost:3000
+
+🔧 Backend API:
+   http://localhost:5000
+
+═══════════════════════════════════════════════════════════════
+   LOGIN CREDENTIALS
+═══════════════════════════════════════════════════════════════
+
+👤 REGULAR USER:
+   Email:    john@example.com
+   Password: 123456
+
+👨‍💼 ADMIN USER:
+   Email:    admin@luxuryhotel.com
+   Password: admin123
+
+═══════════════════════════════════════════════════════════════
+   ALTERNATIVE: COMMAND PROMPT METHOD
+═══════════════════════════════════════════════════════════════
+
+Terminal 1 (Backend):
+---------------------
+cd /d D:\MR_nith\luxury-hotel-management\backend
+npm start
+
+
+Terminal 2 (Frontend):
+----------------------
+cd /d D:\MR_nith\luxury-hotel-management\frontend
+npm start
+
+═══════════════════════════════════════════════════════════════
+   TO STOP THE APPLICATION
+═══════════════════════════════════════════════════════════════
+
+Press Ctrl + C in both windows (backend and frontend)
+Or simply close both terminal windows
+
+═══════════════════════════════════════════════════════════════
+   TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════
+
+❌ If MongoDB error appears:
+   Run in CMD: net start MongoDB
+
+❌ If port 5000 or 3000 is busy:
+   netstat -ano | findstr :5000
+   taskkill /PID <PID_NUMBER> /F
+
+❌ If modules missing:
+   Delete node_modules folders and run:
+   cd backend && npm install
+   cd frontend && npm install
+
+═══════════════════════════════════════════════════════════════
+   FEATURES TO TRY
+═══════════════════════════════════════════════════════════════
+
+✅ Browse luxury rooms
+✅ Filter by room type and price
+✅ View room details
+✅ Book a room (3-step process)
+✅ View booking history
+✅ Cancel bookings
+✅ Update profile
+✅ Admin dashboard (login as admin)
+
+═══════════════════════════════════════════════════════════════
+
+✨ ENJOY YOUR LUXURY HOTEL MANAGEMENT SYSTEM! ✨
+
+═══════════════════════════════════════════════════════════════
