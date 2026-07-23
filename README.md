@@ -3,7 +3,6 @@
 A full-stack luxury hotel booking and management system built with the MERN stack (MongoDB, Express.js, React.js, Node.js) featuring JWT authentication, premium UI, and comprehensive booking management.
 
 ## ✨ Features
-
 ### Frontend Features
 - **Modern, Responsive UI** - Premium design using Bootstrap 5
 - **Home Page** - Hero carousel, about section, featured rooms, services, gallery, testimonials, Google Maps, contact form
