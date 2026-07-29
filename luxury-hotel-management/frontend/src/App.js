@@ -15,11 +15,15 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminFoodOrders from './pages/AdminFoodOrders';
 import RoomDetails from './pages/RoomDetails';
 import Booking from './pages/Booking';
 import BookingConfirmation from './pages/BookingConfirmation';
 import MyBookings from './pages/MyBookings';
 import Profile from './pages/Profile';
+import RoomService from './pages/RoomService';
+import FoodOrderConfirmation from './pages/FoodOrderConfirmation';
+import MyFoodOrders from './pages/MyFoodOrders';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -76,6 +80,30 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/room-service"
+                element={
+                  <ProtectedRoute>
+                    <RoomService />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/food-order-confirmation/:orderId"
+                element={
+                  <ProtectedRoute>
+                    <FoodOrderConfirmation />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-food-orders"
+                element={
+                  <ProtectedRoute>
+                    <MyFoodOrders />
+                  </ProtectedRoute>
+                }
+              />
               
               {/* Admin Routes */}
               <Route
@@ -83,6 +111,14 @@ function App() {
                 element={
                   <AdminRoute>
                     <AdminDashboard />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/admin/food-orders"
+                element={
+                  <AdminRoute>
+                    <AdminFoodOrders />
                   </AdminRoute>
                 }
               />

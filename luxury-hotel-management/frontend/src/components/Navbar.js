@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Navbar as BSNavbar, Nav, Container, Button } from 'react-bootstrap';
-import { FaUser, FaSignOutAlt, FaUserCircle } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaUserCircle, FaUtensils } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -64,6 +64,12 @@ const Navbar = () => {
               Contact
             </Nav.Link>
 
+            {user && !isAdmin && (
+              <Nav.Link as={Link} to="/room-service" className="px-3" onClick={() => setExpanded(false)}>
+                🍽️ Room Service
+              </Nav.Link>
+            )}
+
             {user ? (
               <>
                 <Nav.Link
@@ -74,6 +80,16 @@ const Navbar = () => {
                 >
                   <FaUserCircle className="me-1" /> Dashboard
                 </Nav.Link>
+                {isAdmin && (
+                  <Nav.Link
+                    as={Link}
+                    to="/admin/food-orders"
+                    className="px-3"
+                    onClick={() => setExpanded(false)}
+                  >
+                    <FaUtensils className="me-1" /> Food Orders
+                  </Nav.Link>
+                )}
                 <Nav.Link
                   as={Link}
                   to="/profile"
@@ -83,14 +99,24 @@ const Navbar = () => {
                   <FaUser className="me-1" /> Profile
                 </Nav.Link>
                 {!isAdmin && (
-                  <Nav.Link
-                    as={Link}
-                    to="/my-bookings"
-                    className="px-3"
-                    onClick={() => setExpanded(false)}
-                  >
-                    My Bookings
-                  </Nav.Link>
+                  <>
+                    <Nav.Link
+                      as={Link}
+                      to="/my-bookings"
+                      className="px-3"
+                      onClick={() => setExpanded(false)}
+                    >
+                      My Bookings
+                    </Nav.Link>
+                    <Nav.Link
+                      as={Link}
+                      to="/my-food-orders"
+                      className="px-3"
+                      onClick={() => setExpanded(false)}
+                    >
+                      My Food Orders
+                    </Nav.Link>
+                  </>
                 )}
                 <Button
                   variant="outline-light"

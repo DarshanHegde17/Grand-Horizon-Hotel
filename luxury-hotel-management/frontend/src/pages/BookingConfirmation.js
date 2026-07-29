@@ -31,6 +31,67 @@ const BookingConfirmation = () => {
     window.print();
   };
 
+  const handleDownloadReceipt = () => {
+    // Create receipt content
+    const receiptContent = `
+╔═══════════════════════════════════════════════════════════════╗
+║                    LUXURY HOTEL                              ║
+║                 BOOKING RECEIPT                              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+BOOKING DETAILS
+═══════════════════════════════════════════════════════════════
+Booking ID:       ${booking.bookingId}
+Booking Date:     ${new Date(booking.createdAt).toLocaleDateString()}
+Status:           ${booking.status}
+
+GUEST INFORMATION
+═══════════════════════════════════════════════════════════════
+Name:             ${booking.user.name}
+Email:            ${booking.user.email}
+Phone:            ${booking.user.phone}
+
+ROOM INFORMATION
+═══════════════════════════════════════════════════════════════
+Room Type:        ${booking.room.roomType}
+Room Number:      #${booking.room.roomNumber}
+Capacity:         ${booking.room.capacity} Guests
+
+STAY DETAILS
+═══════════════════════════════════════════════════════════════
+Check-in:         ${new Date(booking.checkInDate).toLocaleDateString()}
+Check-out:        ${new Date(booking.checkOutDate).toLocaleDateString()}
+Number of Guests: ${booking.numberOfGuests}
+
+PAYMENT DETAILS
+═══════════════════════════════════════════════════════════════
+Payment Method:   ${booking.paymentMethod}
+Total Amount:     ₹${booking.totalAmount}
+
+═══════════════════════════════════════════════════════════════
+           Thank you for choosing Luxury Hotel!
+           
+           For queries, contact us at:
+           Email: info@luxuryhotel.com
+           Phone: +91 9876543210
+═══════════════════════════════════════════════════════════════
+
+Generated on: ${new Date().toLocaleString()}
+    `;
+
+    // Create and download file
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Receipt_${booking.bookingId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    toast.success('Receipt downloaded successfully!');
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!booking) return <div className="text-center py-5"><h3>Booking not found</h3></div>;
 
@@ -145,10 +206,14 @@ const BookingConfirmation = () => {
           </Card>
 
           {/* Action Buttons */}
-          <div className="d-flex gap-3 justify-content-center">
+          <div className="d-flex gap-3 justify-content-center flex-wrap">
             <Button variant="outline-primary" onClick={handlePrint}>
               <FaPrint className="me-2" />
               Print
+            </Button>
+            <Button variant="outline-success" onClick={handleDownloadReceipt}>
+              <FaDownload className="me-2" />
+              Download Receipt
             </Button>
             <Button className="btn-luxury" onClick={() => navigate('/my-bookings')}>
               View My Bookings

@@ -55,4 +55,14 @@ export const contactAPI = {
   getAllMessages: () => api.get('/contact')
 };
 
+// Food Order APIs
+export const foodOrderAPI = {
+  createOrder: (data) => api.post('/food-orders', data),
+  getUserOrders: () => api.get('/food-orders/my-orders'),
+  getAllOrders: (params) => api.get('/food-orders', { params }),
+  getOrderById: (id) => api.get(`/food-orders/${id}`),
+  cancelOrder: (id) => api.put(`/food-orders/${id}/cancel`),
+  updateOrderStatus: (id, status) => api.put(`/food-orders/${id}/status`, { status })
+};
+
 export default api;

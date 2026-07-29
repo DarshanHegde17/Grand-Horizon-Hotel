@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Badge, Button, Modal } from 'react-bootstrap';
-import { FaCalendarAlt, FaUsers, FaRupeeSign } from 'react-icons/fa';
+import { FaCalendarAlt, FaUsers, FaRupeeSign, FaDownload } from 'react-icons/fa';
 import { bookingAPI } from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
@@ -60,6 +60,58 @@ const MyBookings = () => {
     const checkInDate = new Date(booking.checkInDate);
     const today = new Date();
     return checkInDate > today;
+  };
+
+  const handleDownloadReceipt = (booking) => {
+    const receiptContent = `
+╔═══════════════════════════════════════════════════════════════╗
+║                    LUXURY HOTEL                              ║
+║                 BOOKING RECEIPT                              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+BOOKING DETAILS
+═══════════════════════════════════════════════════════════════
+Booking ID:       ${booking.bookingId}
+Booking Date:     ${new Date(booking.createdAt).toLocaleDateString()}
+Status:           ${booking.status}
+
+ROOM INFORMATION
+═══════════════════════════════════════════════════════════════
+Room Type:        ${booking.room.roomType}
+Room Number:      #${booking.room.roomNumber}
+
+STAY DETAILS
+═══════════════════════════════════════════════════════════════
+Check-in:         ${new Date(booking.checkInDate).toLocaleDateString()}
+Check-out:        ${new Date(booking.checkOutDate).toLocaleDateString()}
+Number of Guests: ${booking.numberOfGuests}
+
+PAYMENT DETAILS
+═══════════════════════════════════════════════════════════════
+Payment Method:   ${booking.paymentMethod}
+Total Amount:     ₹${booking.totalAmount}
+
+═══════════════════════════════════════════════════════════════
+           Thank you for choosing Luxury Hotel!
+           
+           For queries, contact us at:
+           Email: info@luxuryhotel.com
+           Phone: +91 9876543210
+═══════════════════════════════════════════════════════════════
+
+Generated on: ${new Date().toLocaleString()}
+    `;
+
+    const blob = new Blob([receiptContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Receipt_${booking.bookingId}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    toast.success('Receipt downloaded successfully!');
   };
 
   if (loading) return <LoadingSpinner />;
@@ -130,6 +182,18 @@ const MyBookings = () => {
                               <FaRupeeSign />
                               {booking.totalAmount}
                             </strong>
+                          </div>
+
+                          <div className="d-flex gap-2 mb-2">
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              className="flex-fill"
+                              onClick={() => handleDownloadReceipt(booking)}
+                            >
+                              <FaDownload className="me-1" />
+                              Receipt
+                            </Button>
                           </div>
 
                           {canCancelBooking(booking) && (
