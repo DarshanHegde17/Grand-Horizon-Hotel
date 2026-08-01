@@ -48,22 +48,28 @@ const Navbar = () => {
         <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
         <BSNavbar.Collapse id="basic-navbar-nav">
           <Nav className="ms-auto align-items-lg-center">
-            <Nav.Link as={Link} to="/" className="px-3" onClick={() => setExpanded(false)}>
-              Home
-            </Nav.Link>
-            <Nav.Link href="#about" className="px-3" onClick={() => setExpanded(false)}>
-              About
-            </Nav.Link>
-            <Nav.Link href="#rooms" className="px-3" onClick={() => setExpanded(false)}>
-              Rooms
-            </Nav.Link>
-            <Nav.Link href="#services" className="px-3" onClick={() => setExpanded(false)}>
-              Services
-            </Nav.Link>
-            <Nav.Link href="#contact" className="px-3" onClick={() => setExpanded(false)}>
-              Contact
-            </Nav.Link>
+            {/* Show these links only when NOT logged in */}
+            {!user && (
+              <>
+                <Nav.Link as={Link} to="/" className="px-3" onClick={() => setExpanded(false)}>
+                  Home
+                </Nav.Link>
+                <Nav.Link href="#about" className="px-3" onClick={() => setExpanded(false)}>
+                  About
+                </Nav.Link>
+                <Nav.Link href="#rooms" className="px-3" onClick={() => setExpanded(false)}>
+                  Rooms
+                </Nav.Link>
+                <Nav.Link href="#services" className="px-3" onClick={() => setExpanded(false)}>
+                  Services
+                </Nav.Link>
+                <Nav.Link href="#contact" className="px-3" onClick={() => setExpanded(false)}>
+                  Contact
+                </Nav.Link>
+              </>
+            )}
 
+            {/* Show Room Service only for logged in non-admin users */}
             {user && !isAdmin && (
               <Nav.Link as={Link} to="/room-service" className="px-3" onClick={() => setExpanded(false)}>
                 🍽️ Room Service
