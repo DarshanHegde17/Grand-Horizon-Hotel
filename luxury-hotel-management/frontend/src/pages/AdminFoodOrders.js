@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Table, Badge, Form, InputGroup, Button } from 'react-bootstrap';
-import { FaSearch, FaUtensils, FaRupeeSign } from 'react-icons/fa';
+import { Container, Row, Col, Card, Badge, Button, Modal } from 'react-bootstrap';
+import { FaUtensils, FaRupeeSign, FaTrash, FaCheck, FaClock, FaTimes } from 'react-icons/fa';
 import { foodOrderAPI } from '../utils/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
@@ -9,23 +9,25 @@ import { useAuth } from '../context/AuthContext';
 const AdminFoodOrders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
-  const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    search: '',
-    status: ''
-  });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
+    preparingOrders: 0,
     deliveredOrders: 0,
+    cancelledOrders: 0,
     totalRevenue: 0
   });
 
   const calculateStats = useCallback(() => {
     const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) => o.status === 'Pending' || o.status === 'Preparing').length;
+    const pendingOrders = orders.filter((o) => o.status === 'Pending').length;
+    const preparingOrders = orders.filter((o) => o.status === 'Preparing').length;
     const deliveredOrders = orders.filter((o) => o.status === 'Delivered').length;
+    const cancelledOrders = orders.filter((o) => o.status === 'Cancelled').length;
     const totalRevenue = orders
       .filter((o) => o.status === 'Delivered')
       .reduce((sum, o) => sum + o.totalAmount, 0);
@@ -33,44 +35,38 @@ const AdminFoodOrders = () => {
     setStats({
       totalOrders,
       pendingOrders,
+      preparingOrders,
       deliveredOrders,
+      cancelledOrders,
       totalRevenue
     });
   }, [orders]);
 
-  const applyFilters = useCallback(() => {
-    let filtered = [...orders];
+  const getOrdersByStatus = useCallback((status) => {
+    return orders
+      .filter(order => order.status === status)
+      .sort((a, b) => {
+        // Today's orders first
+        const aIsToday = isToday(new Date(a.createdAt));
+        const bIsToday = isToday(new Date(b.createdAt));
+        
+        if (aIsToday && !bIsToday) return -1;
+        if (!aIsToday && bIsToday) return 1;
+        
+        // Then sort by newest first
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+  }, [orders]);
 
-    // Search filter
-    if (filters.search) {
-      filtered = filtered.filter(
-        (order) => {
-          // Safety check for null user
-          if (!order.user) return false;
-          
-          return (
-            order.orderId.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.roomNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.user.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-            order.user.email?.toLowerCase().includes(filters.search.toLowerCase())
-          );
-        }
-      );
-    }
-
-    // Status filter
-    if (filters.status) {
-      filtered = filtered.filter((order) => order.status === filters.status);
-    }
-
-    setFilteredOrders(filtered);
-  }, [orders, filters]);
+  const isToday = (date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
 
   const fetchOrders = async () => {
     try {
       const { data } = await foodOrderAPI.getAllOrders();
       setOrders(data);
-      setFilteredOrders(data);
       setLoading(false);
     } catch (error) {
       toast.error('Failed to fetch food orders');
@@ -78,13 +74,40 @@ const AdminFoodOrders = () => {
     }
   };
 
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      await foodOrderAPI.updateOrderStatus(orderId, newStatus);
+      toast.success('Order status updated successfully');
+      fetchOrders();
+    } catch (error) {
+      toast.error('Failed to update order status');
+    }
+  };
+
+  const handleDeleteClick = (order) => {
+    setSelectedOrder(order);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteOrder = async () => {
+    if (!selectedOrder) return;
+    
+    setDeleting(true);
+    try {
+      await foodOrderAPI.cancelOrder(selectedOrder._id);
+      toast.success('Order deleted successfully');
+      setShowDeleteModal(false);
+      fetchOrders();
+    } catch (error) {
+      toast.error('Failed to delete order');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [applyFilters]);
 
   useEffect(() => {
     calculateStats();
@@ -100,14 +123,113 @@ const AdminFoodOrders = () => {
     return <Badge bg={statusColors[status] || 'primary'}>{status}</Badge>;
   };
 
-  const handleStatusChange = async (orderId, newStatus) => {
-    try {
-      await foodOrderAPI.updateOrderStatus(orderId, newStatus);
-      toast.success('Order status updated successfully');
-      fetchOrders();
-    } catch (error) {
-      toast.error('Failed to update order status');
-    }
+  const renderOrderCard = (order) => {
+    if (!order.user) return null;
+    
+    const orderIsToday = isToday(new Date(order.createdAt));
+    
+    return (
+      <Card key={order._id} className="mb-3 shadow-sm">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <h6 className="mb-1">
+                {order.orderId}
+                {orderIsToday && (
+                  <Badge bg="success" className="ms-2" style={{ fontSize: '0.7rem' }}>
+                    TODAY
+                  </Badge>
+                )}
+              </h6>
+              <small className="text-muted">
+                {new Date(order.createdAt).toLocaleString()}
+              </small>
+            </div>
+            <div className="d-flex gap-2 align-items-center">
+              {getStatusBadge(order.status)}
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => handleDeleteClick(order)}
+                title="Delete Order"
+              >
+                <FaTrash />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="mb-2">
+            <strong>Room:</strong> <Badge bg="secondary">{order.roomNumber}</Badge>
+            <br />
+            <strong>Guest:</strong> {order.user?.name || 'N/A'}
+            <br />
+            <small className="text-muted">{order.user?.email || 'N/A'}</small>
+          </div>
+
+          <div className="mb-2">
+            <strong>Items:</strong>
+            <ul className="mb-0 mt-1" style={{ fontSize: '0.9rem' }}>
+              {order.items.map((item, index) => (
+                <li key={index}>
+                  {item.name} × {item.quantity} - ₹{item.price * item.quantity}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mb-2 p-2" style={{ background: '#f8f9fa', borderRadius: '5px' }}>
+            <strong>Total Amount:</strong>{' '}
+            <span style={{ color: '#c9a96e', fontSize: '1.1rem', fontWeight: 'bold' }}>
+              ₹{order.totalAmount}
+            </span>
+          </div>
+
+          {order.specialInstructions && (
+            <div className="mb-2">
+              <small>
+                <strong>Special Instructions:</strong> {order.specialInstructions}
+              </small>
+            </div>
+          )}
+
+          {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
+            <div className="d-flex gap-2 mt-2">
+              {order.status === 'Pending' && (
+                <Button
+                  variant="info"
+                  size="sm"
+                  className="flex-fill"
+                  onClick={() => handleStatusChange(order._id, 'Preparing')}
+                >
+                  <FaClock className="me-1" />
+                  Start Preparing
+                </Button>
+              )}
+              {order.status === 'Preparing' && (
+                <Button
+                  variant="success"
+                  size="sm"
+                  className="flex-fill"
+                  onClick={() => handleStatusChange(order._id, 'Delivered')}
+                >
+                  <FaCheck className="me-1" />
+                  Mark Delivered
+                </Button>
+              )}
+              <Button
+                variant="outline-danger"
+                size="sm"
+                className="flex-fill"
+                onClick={() => handleStatusChange(order._id, 'Cancelled')}
+              >
+                <FaTimes className="me-1" />
+                Cancel
+              </Button>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+    );
   };
 
   if (loading) return <LoadingSpinner />;
@@ -127,231 +249,256 @@ const AdminFoodOrders = () => {
       <Container className="py-5">
         {/* Statistics Cards */}
         <Row className="mb-4">
-          <Col md={3} className="mb-3">
+          <Col md={2} className="mb-3">
             <Card className="shadow-sm h-100">
               <Card.Body className="text-center">
                 <div
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '50px',
+                    height: '50px',
                     borderRadius: '50%',
                     background: '#e3f2fd',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 15px'
+                    margin: '0 auto 10px'
                   }}
                 >
-                  <FaUtensils size={30} color="#2196f3" />
+                  <FaUtensils size={25} color="#2196f3" />
                 </div>
-                <h3>{stats.totalOrders}</h3>
-                <p className="text-muted mb-0">Total Orders</p>
+                <h4>{stats.totalOrders}</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Total</p>
               </Card.Body>
             </Card>
           </Col>
-          <Col md={3} className="mb-3">
+          <Col md={2} className="mb-3">
             <Card className="shadow-sm h-100">
               <Card.Body className="text-center">
                 <div
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '50px',
+                    height: '50px',
                     borderRadius: '50%',
                     background: '#fff3e0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 15px'
+                    margin: '0 auto 10px'
                   }}
                 >
-                  <FaUtensils size={30} color="#ff9800" />
+                  <FaClock size={25} color="#ff9800" />
                 </div>
-                <h3>{stats.pendingOrders}</h3>
-                <p className="text-muted mb-0">Pending/Preparing</p>
+                <h4>{stats.pendingOrders}</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Pending</p>
               </Card.Body>
             </Card>
           </Col>
-          <Col md={3} className="mb-3">
+          <Col md={2} className="mb-3">
             <Card className="shadow-sm h-100">
               <Card.Body className="text-center">
                 <div
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    background: '#e3f2fd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px'
+                  }}
+                >
+                  <FaUtensils size={25} color="#2196f3" />
+                </div>
+                <h4>{stats.preparingOrders}</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Preparing</p>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={2} className="mb-3">
+            <Card className="shadow-sm h-100">
+              <Card.Body className="text-center">
+                <div
+                  style={{
+                    width: '50px',
+                    height: '50px',
                     borderRadius: '50%',
                     background: '#e8f5e9',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 15px'
+                    margin: '0 auto 10px'
                   }}
                 >
-                  <FaUtensils size={30} color="#4caf50" />
+                  <FaCheck size={25} color="#4caf50" />
                 </div>
-                <h3>{stats.deliveredOrders}</h3>
-                <p className="text-muted mb-0">Delivered</p>
+                <h4>{stats.deliveredOrders}</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Delivered</p>
               </Card.Body>
             </Card>
           </Col>
-          <Col md={3} className="mb-3">
+          <Col md={2} className="mb-3">
             <Card className="shadow-sm h-100">
               <Card.Body className="text-center">
                 <div
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: '50%',
+                    background: '#ffebee',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px'
+                  }}
+                >
+                  <FaTimes size={25} color="#f44336" />
+                </div>
+                <h4>{stats.cancelledOrders}</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Cancelled</p>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={2} className="mb-3">
+            <Card className="shadow-sm h-100">
+              <Card.Body className="text-center">
+                <div
+                  style={{
+                    width: '50px',
+                    height: '50px',
                     borderRadius: '50%',
                     background: '#fff3e0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 15px'
+                    margin: '0 auto 10px'
                   }}
                 >
-                  <FaRupeeSign size={30} color="#ff9800" />
+                  <FaRupeeSign size={25} color="#ff9800" />
                 </div>
-                <h3>₹{stats.totalRevenue.toLocaleString()}</h3>
-                <p className="text-muted mb-0">Total Revenue</p>
+                <h4 style={{ fontSize: '1.3rem' }}>₹{(stats.totalRevenue / 1000).toFixed(1)}k</h4>
+                <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>Revenue</p>
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
-        {/* Filters */}
-        <Card className="shadow-sm mb-4">
-          <Card.Body>
-            <h5 className="mb-3">
-              <FaSearch className="me-2" />
-              Search & Filter Orders
-            </h5>
-            <Row>
-              <Col md={8}>
-                <InputGroup>
-                  <InputGroup.Text>
-                    <FaSearch />
-                  </InputGroup.Text>
-                  <Form.Control
-                    type="text"
-                    placeholder="Search by Order ID, Room Number, Guest Name, or Email"
-                    value={filters.search}
-                    onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  />
-                </InputGroup>
-              </Col>
-              <Col md={3}>
-                <Form.Select
-                  value={filters.status}
-                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                >
-                  <option value="">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Preparing">Preparing</option>
-                  <option value="Delivered">Delivered</option>
-                  <option value="Cancelled">Cancelled</option>
-                </Form.Select>
-              </Col>
-              <Col md={1}>
-                <Button
-                  variant="outline-secondary"
-                  onClick={() => setFilters({ search: '', status: '' })}
-                  className="w-100"
-                >
-                  Clear
-                </Button>
-              </Col>
-            </Row>
-          </Card.Body>
-        </Card>
+        {/* 4 Categories */}
+        <Row>
+          {/* Pending Orders */}
+          <Col lg={6} xl={3} className="mb-4">
+            <Card className="shadow-sm h-100">
+              <Card.Header style={{ background: '#ff9800', color: 'white' }}>
+                <h6 className="mb-0">
+                  <FaClock className="me-2" />
+                  Pending ({getOrdersByStatus('Pending').length})
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ maxHeight: '600px', overflowY: 'auto', padding: '15px' }}>
+                {getOrdersByStatus('Pending').length > 0 ? (
+                  getOrdersByStatus('Pending').map(renderOrderCard)
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-muted mb-0">No pending orders</p>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
 
-        {/* Orders Table */}
-        <Card className="shadow-sm">
-          <Card.Header style={{ background: '#c9a96e', color: 'white' }}>
-            <h5 className="mb-0">All Food Orders ({filteredOrders.length})</h5>
-          </Card.Header>
-          <Card.Body className="p-0">
-            {filteredOrders.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <Table striped hover responsive className="mb-0">
-                  <thead style={{ background: '#f8f9fa' }}>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Room</th>
-                      <th>Guest</th>
-                      <th>Items</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOrders.map((order) => {
-                      // Safety check for null user
-                      if (!order.user) return null;
-                      
-                      return (
-                        <tr key={order._id}>
-                          <td>
-                            <strong>{order.orderId}</strong>
-                          </td>
-                          <td>
-                            <Badge bg="secondary">{order.roomNumber}</Badge>
-                          </td>
-                          <td>
-                            <div>
-                              <strong>{order.user?.name || 'N/A'}</strong>
-                              <br />
-                              <small className="text-muted">{order.user?.email || 'N/A'}</small>
-                              <br />
-                              <small className="text-muted">{order.user?.phone || 'N/A'}</small>
-                            </div>
-                          </td>
-                          <td>
-                            <small>
-                              {order.items.map((item, index) => (
-                                <div key={index}>
-                                  {item.name} × {item.quantity}
-                                </div>
-                              ))}
-                            </small>
-                          </td>
-                          <td>
-                            <strong style={{ color: '#c9a96e' }}>₹{order.totalAmount}</strong>
-                          </td>
-                          <td>{getStatusBadge(order.status)}</td>
-                          <td>
-                            <small>{new Date(order.createdAt).toLocaleString()}</small>
-                          </td>
-                          <td>
-                            {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                              <Form.Select
-                                size="sm"
-                                value={order.status}
-                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                style={{ width: '140px' }}
-                              >
-                                <option value="Pending">Pending</option>
-                                <option value="Preparing">Preparing</option>
-                                <option value="Delivered">Delivered</option>
-                                <option value="Cancelled">Cancelled</option>
-                              </Form.Select>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-5">
-                <h5>No orders found</h5>
-                <p className="text-muted">Try adjusting your filters</p>
-              </div>
-            )}
-          </Card.Body>
-        </Card>
+          {/* Preparing Orders */}
+          <Col lg={6} xl={3} className="mb-4">
+            <Card className="shadow-sm h-100">
+              <Card.Header style={{ background: '#2196f3', color: 'white' }}>
+                <h6 className="mb-0">
+                  <FaUtensils className="me-2" />
+                  Preparing ({getOrdersByStatus('Preparing').length})
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ maxHeight: '600px', overflowY: 'auto', padding: '15px' }}>
+                {getOrdersByStatus('Preparing').length > 0 ? (
+                  getOrdersByStatus('Preparing').map(renderOrderCard)
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-muted mb-0">No orders being prepared</p>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* Delivered Orders */}
+          <Col lg={6} xl={3} className="mb-4">
+            <Card className="shadow-sm h-100">
+              <Card.Header style={{ background: '#4caf50', color: 'white' }}>
+                <h6 className="mb-0">
+                  <FaCheck className="me-2" />
+                  Delivered ({getOrdersByStatus('Delivered').length})
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ maxHeight: '600px', overflowY: 'auto', padding: '15px' }}>
+                {getOrdersByStatus('Delivered').length > 0 ? (
+                  getOrdersByStatus('Delivered').map(renderOrderCard)
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-muted mb-0">No delivered orders</p>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* Cancelled Orders */}
+          <Col lg={6} xl={3} className="mb-4">
+            <Card className="shadow-sm h-100">
+              <Card.Header style={{ background: '#f44336', color: 'white' }}>
+                <h6 className="mb-0">
+                  <FaTimes className="me-2" />
+                  Cancelled ({getOrdersByStatus('Cancelled').length})
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ maxHeight: '600px', overflowY: 'auto', padding: '15px' }}>
+                {getOrdersByStatus('Cancelled').length > 0 ? (
+                  getOrdersByStatus('Cancelled').map(renderOrderCard)
+                ) : (
+                  <div className="text-center py-3">
+                    <p className="text-muted mb-0">No cancelled orders</p>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
       </Container>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Delete Order</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete this order?</p>
+          {selectedOrder && (
+            <div className="mt-3 p-3" style={{ background: '#f8f9fa', borderRadius: '8px' }}>
+              <p className="mb-1"><strong>Order ID:</strong> {selectedOrder.orderId}</p>
+              <p className="mb-1"><strong>Room:</strong> {selectedOrder.roomNumber}</p>
+              <p className="mb-1"><strong>Amount:</strong> ₹{selectedOrder.totalAmount}</p>
+              <p className="mb-0"><strong>Status:</strong> {getStatusBadge(selectedOrder.status)}</p>
+            </div>
+          )}
+          <div className="alert alert-warning mt-3 mb-0">
+            <small>⚠️ This action cannot be undone.</small>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteOrder} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete Order'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
