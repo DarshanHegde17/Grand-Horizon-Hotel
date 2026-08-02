@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Form, InputGroup, Button } from 'react-bootstrap';
 import { FaSearch, FaUtensils, FaRupeeSign } from 'react-icons/fa';
 import { foodOrderAPI } from '../utils/api';
@@ -22,31 +22,7 @@ const AdminFoodOrders = () => {
     totalRevenue: 0
   });
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, orders]);
-
-  useEffect(() => {
-    calculateStats();
-  }, [orders]);
-
-  const fetchOrders = async () => {
-    try {
-      const { data } = await foodOrderAPI.getAllOrders();
-      setOrders(data);
-      setFilteredOrders(data);
-      setLoading(false);
-    } catch (error) {
-      toast.error('Failed to fetch food orders');
-      setLoading(false);
-    }
-  };
-
-  const calculateStats = () => {
+  const calculateStats = useCallback(() => {
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((o) => o.status === 'Pending' || o.status === 'Preparing').length;
     const deliveredOrders = orders.filter((o) => o.status === 'Delivered').length;
@@ -60,19 +36,25 @@ const AdminFoodOrders = () => {
       deliveredOrders,
       totalRevenue
     });
-  };
+  }, [orders]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...orders];
 
     // Search filter
     if (filters.search) {
       filtered = filtered.filter(
-        (order) =>
-          order.orderId.toLowerCase().includes(filters.search.toLowerCase()) ||
-          order.roomNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
-          order.user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-          order.user.email.toLowerCase().includes(filters.search.toLowerCase())
+        (order) => {
+          // Safety check for null user
+          if (!order.user) return false;
+          
+          return (
+            order.orderId.toLowerCase().includes(filters.search.toLowerCase()) ||
+            order.roomNumber.toLowerCase().includes(filters.search.toLowerCase()) ||
+            order.user.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+            order.user.email?.toLowerCase().includes(filters.search.toLowerCase())
+          );
+        }
       );
     }
 
@@ -82,7 +64,31 @@ const AdminFoodOrders = () => {
     }
 
     setFilteredOrders(filtered);
+  }, [orders, filters]);
+
+  const fetchOrders = async () => {
+    try {
+      const { data } = await foodOrderAPI.getAllOrders();
+      setOrders(data);
+      setFilteredOrders(data);
+      setLoading(false);
+    } catch (error) {
+      toast.error('Failed to fetch food orders');
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
 
   const getStatusBadge = (status) => {
     const statusColors = {
@@ -279,56 +285,61 @@ const AdminFoodOrders = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredOrders.map((order) => (
-                      <tr key={order._id}>
-                        <td>
-                          <strong>{order.orderId}</strong>
-                        </td>
-                        <td>
-                          <Badge bg="secondary">{order.roomNumber}</Badge>
-                        </td>
-                        <td>
-                          <div>
-                            <strong>{order.user.name}</strong>
-                            <br />
-                            <small className="text-muted">{order.user.email}</small>
-                            <br />
-                            <small className="text-muted">{order.user.phone}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <small>
-                            {order.items.map((item, index) => (
-                              <div key={index}>
-                                {item.name} × {item.quantity}
-                              </div>
-                            ))}
-                          </small>
-                        </td>
-                        <td>
-                          <strong style={{ color: '#c9a96e' }}>₹{order.totalAmount}</strong>
-                        </td>
-                        <td>{getStatusBadge(order.status)}</td>
-                        <td>
-                          <small>{new Date(order.createdAt).toLocaleString()}</small>
-                        </td>
-                        <td>
-                          {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-                            <Form.Select
-                              size="sm"
-                              value={order.status}
-                              onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                              style={{ width: '140px' }}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Preparing">Preparing</option>
-                              <option value="Delivered">Delivered</option>
-                              <option value="Cancelled">Cancelled</option>
-                            </Form.Select>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredOrders.map((order) => {
+                      // Safety check for null user
+                      if (!order.user) return null;
+                      
+                      return (
+                        <tr key={order._id}>
+                          <td>
+                            <strong>{order.orderId}</strong>
+                          </td>
+                          <td>
+                            <Badge bg="secondary">{order.roomNumber}</Badge>
+                          </td>
+                          <td>
+                            <div>
+                              <strong>{order.user?.name || 'N/A'}</strong>
+                              <br />
+                              <small className="text-muted">{order.user?.email || 'N/A'}</small>
+                              <br />
+                              <small className="text-muted">{order.user?.phone || 'N/A'}</small>
+                            </div>
+                          </td>
+                          <td>
+                            <small>
+                              {order.items.map((item, index) => (
+                                <div key={index}>
+                                  {item.name} × {item.quantity}
+                                </div>
+                              ))}
+                            </small>
+                          </td>
+                          <td>
+                            <strong style={{ color: '#c9a96e' }}>₹{order.totalAmount}</strong>
+                          </td>
+                          <td>{getStatusBadge(order.status)}</td>
+                          <td>
+                            <small>{new Date(order.createdAt).toLocaleString()}</small>
+                          </td>
+                          <td>
+                            {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
+                              <Form.Select
+                                size="sm"
+                                value={order.status}
+                                onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                style={{ width: '140px' }}
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Preparing">Preparing</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                              </Form.Select>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
               </div>
