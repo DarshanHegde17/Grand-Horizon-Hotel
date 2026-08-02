@@ -9,7 +9,7 @@ dotenv.config();
 const users = [
   {
     name: 'Admin User',
-    email: 'admin@luxuryhotel.com',
+    email: 'admin@gmail.com',
     password: 'admin123',
     phone: '+91 9876543210',
     role: 'admin'
@@ -140,8 +140,10 @@ const seedDatabase = async () => {
 
     console.log('Data cleared!');
 
-    // Insert users
-    const createdUsers = await User.insertMany(users);
+    // Insert users one by one to trigger password hashing
+    for (const userData of users) {
+      await User.create(userData);
+    }
     console.log('Users seeded!');
 
     // Insert rooms

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Form, InputGroup, Button } from 'react-bootstrap';
 import { FaSearch, FaCalendarAlt, FaUsers, FaRupeeSign, FaHotel } from 'react-icons/fa';
 import { bookingAPI } from '../utils/api';
@@ -22,31 +22,8 @@ const AdminDashboard = () => {
     totalRevenue: 0
   });
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, bookings]);
-
-  useEffect(() => {
-    calculateStats();
-  }, [bookings]);
-
-  const fetchBookings = async () => {
-    try {
-      const { data } = await bookingAPI.getAllBookings();
-      setBookings(data);
-      setFilteredBookings(data);
-      setLoading(false);
-    } catch (error) {
-      toast.error('Failed to fetch bookings');
-      setLoading(false);
-    }
-  };
-
-  const calculateStats = () => {
+  // Define callback functions BEFORE useEffect hooks
+  const calculateStats = useCallback(() => {
     const totalBookings = bookings.length;
     const confirmedBookings = bookings.filter((b) => b.status === 'Confirmed').length;
     const cancelledBookings = bookings.filter((b) => b.status === 'Cancelled').length;
@@ -60,19 +37,25 @@ const AdminDashboard = () => {
       cancelledBookings,
       totalRevenue
     });
-  };
+  }, [bookings]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...bookings];
 
     // Search filter
     if (filters.search) {
       filtered = filtered.filter(
-        (booking) =>
-          booking.bookingId.toLowerCase().includes(filters.search.toLowerCase()) ||
-          booking.user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-          booking.user.email.toLowerCase().includes(filters.search.toLowerCase()) ||
-          booking.room.roomNumber.toLowerCase().includes(filters.search.toLowerCase())
+        (booking) => {
+          // Safety checks for null values
+          if (!booking.user || !booking.room) return false;
+          
+          return (
+            booking.bookingId.toLowerCase().includes(filters.search.toLowerCase()) ||
+            booking.user.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+            booking.user.email?.toLowerCase().includes(filters.search.toLowerCase()) ||
+            booking.room.roomNumber?.toLowerCase().includes(filters.search.toLowerCase())
+          );
+        }
       );
     }
 
@@ -82,7 +65,31 @@ const AdminDashboard = () => {
     }
 
     setFilteredBookings(filtered);
+  }, [bookings, filters]);
+
+  const fetchBookings = async () => {
+    try {
+      const { data } = await bookingAPI.getAllBookings();
+      setBookings(data);
+      setFilteredBookings(data);
+      setLoading(false);
+    } catch (error) {
+      toast.error('Failed to fetch bookings');
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  useEffect(() => {
+    calculateStats();
+  }, [calculateStats]);
 
   const getStatusBadge = (status) => {
     const statusColors = {
@@ -264,36 +271,43 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredBookings.map((booking) => (
-                      <tr key={booking._id}>
-                        <td>
-                          <strong>{booking.bookingId}</strong>
-                        </td>
-                        <td>
-                          <div>
-                            <strong>{booking.user.name}</strong>
-                            <br />
-                            <small className="text-muted">{booking.user.email}</small>
-                            <br />
-                            <small className="text-muted">{booking.user.phone}</small>
-                          </div>
-                        </td>
-                        <td>
-                          <div>
-                            <strong>{booking.room.roomType}</strong>
-                            <br />
-                            <small className="text-muted">#{booking.room.roomNumber}</small>
-                          </div>
-                        </td>
-                        <td>{new Date(booking.checkInDate).toLocaleDateString()}</td>
-                        <td>{new Date(booking.checkOutDate).toLocaleDateString()}</td>
-                        <td>{booking.numberOfGuests}</td>
-                        <td>
-                          <strong style={{ color: '#c9a96e' }}>₹{booking.totalAmount}</strong>
-                        </td>
-                        <td>{getStatusBadge(booking.status)}</td>
-                      </tr>
-                    ))}
+                    {filteredBookings.map((booking) => {
+                      // Safety check for null user or room
+                      if (!booking.user || !booking.room) {
+                        return null;
+                      }
+                      
+                      return (
+                        <tr key={booking._id}>
+                          <td>
+                            <strong>{booking.bookingId}</strong>
+                          </td>
+                          <td>
+                            <div>
+                              <strong>{booking.user?.name || 'N/A'}</strong>
+                              <br />
+                              <small className="text-muted">{booking.user?.email || 'N/A'}</small>
+                              <br />
+                              <small className="text-muted">{booking.user?.phone || 'N/A'}</small>
+                            </div>
+                          </td>
+                          <td>
+                            <div>
+                              <strong>{booking.room?.roomType || 'N/A'}</strong>
+                              <br />
+                              <small className="text-muted">#{booking.room?.roomNumber || 'N/A'}</small>
+                            </div>
+                          </td>
+                          <td>{new Date(booking.checkInDate).toLocaleDateString()}</td>
+                          <td>{new Date(booking.checkOutDate).toLocaleDateString()}</td>
+                          <td>{booking.numberOfGuests}</td>
+                          <td>
+                            <strong style={{ color: '#c9a96e' }}>₹{booking.totalAmount}</strong>
+                          </td>
+                          <td>{getStatusBadge(booking.status)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
               </div>

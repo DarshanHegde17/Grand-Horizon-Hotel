@@ -138,18 +138,36 @@ const Navbar = () => {
                 </Button>
               </>
             ) : (
-              <Button
-                variant="outline-light"
-                size="sm"
-                className="ms-lg-3 mt-2 mt-lg-0"
-                onClick={() => {
-                  setExpanded(false);
-                  navigate('/login');
-                }}
-                style={{ borderColor: '#c9a96e', color: '#c9a96e' }}
-              >
-                <FaUser className="me-1" /> Login
-              </Button>
+              <>
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  className="ms-lg-2 mt-2 mt-lg-0"
+                  onClick={() => {
+                    setExpanded(false);
+                    navigate('/login');
+                  }}
+                  style={{ borderColor: '#c9a96e', color: '#c9a96e' }}
+                >
+                  <FaUser className="me-1" /> Login
+                </Button>
+                <Button
+                  variant="outline-light"
+                  size="sm"
+                  className="ms-lg-2 mt-2 mt-lg-0"
+                  onClick={() => {
+                    setExpanded(false);
+                    navigate('/admin-login');
+                  }}
+                  style={{ 
+                    borderColor: '#c9a96e', 
+                    color: '#c9a96e',
+                    background: 'rgba(201, 169, 110, 0.1)'
+                  }}
+                >
+                  <FaUserCircle className="me-1" /> Admin
+                </Button>
+              </>
             )}
           </Nav>
         </BSNavbar.Collapse>

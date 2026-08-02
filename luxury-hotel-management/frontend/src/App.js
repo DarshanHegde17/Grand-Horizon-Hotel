@@ -12,6 +12,7 @@ import AdminRoute from './components/AdminRoute';
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
+import AdminLogin from './pages/AdminLogin';
 import Register from './pages/Register';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -36,6 +37,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/register" element={<Register />} />
               <Route path="/rooms/:id" element={<RoomDetails />} />
               

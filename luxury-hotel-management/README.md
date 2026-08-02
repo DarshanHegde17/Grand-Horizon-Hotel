@@ -77,7 +77,7 @@ node seedData.js
 ```
 
 This will create:
-- **Admin User**: admin@luxuryhotel.com / admin123
+- **Admin User**: admin@gmail.com / admin123
 - **Test User**: john@example.com / 123456
 - **8 Sample Rooms** with different types and amenities
 
@@ -111,7 +111,7 @@ The frontend will run on `http://localhost:3000`
 ## 🔑 Demo Credentials
 
 ### Admin Account
-- **Email**: admin@luxuryhotel.com
+- **Email**: admin@gmail.com
 - **Password**: admin123
 
 ### User Account

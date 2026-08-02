@@ -119,6 +119,12 @@ const Login = () => {
                           Register here
                         </Link>
                       </p>
+                      <p className="mb-0 text-muted">
+                        Admin?{' '}
+                        <Link to="/admin-login" style={{ color: '#c9a96e', textDecoration: 'none', fontWeight: 'bold' }}>
+                          Login here
+                        </Link>
+                      </p>
                     </div>
 
                     <hr className="my-4" />
@@ -126,7 +132,7 @@ const Login = () => {
                     <div className="text-center">
                       <small className="text-muted">Demo Credentials</small>
                       <div className="mt-2" style={{ fontSize: '0.85rem', color: '#666' }}>
-                        <div><strong>Admin:</strong> admin@luxuryhotel.com / admin123</div>
+                        <div><strong>Admin:</strong> admin@gmail.com / admin123</div>
                         <div><strong>User:</strong> john@example.com / 123456</div>
                       </div>
                     </div>
