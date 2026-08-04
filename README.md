@@ -1,6 +1,5 @@
 # Luxury Hotel Management System
 
-
 A full-stack luxury hotel booking and management system built with the MERN stack (MongoDB, Express.js, React.js, Node.js) featuring JWT authentication, premium UI, and comprehensive booking management.
 
 ## ✨ Features
