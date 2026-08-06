@@ -4,7 +4,6 @@ A full-stack luxury hotel booking and management system built with the MERN stac
 
 
 
-
 ## ✨ Features
 ### Frontend Features
 - **Modern, Responsive UI** - Premium design using Bootstrap 5
